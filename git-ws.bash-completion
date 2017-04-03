@@ -1,0 +1,14 @@
+_git_ws() 
+{
+  local cur
+  COMPREPLY=( "" )
+  cur="${COMP_WORDS[COMP_CWORD]}"
+
+  if [ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != true ]; then
+    return 0
+  fi
+
+  COMPREPLY=( $(compgen -W "$(git for-each-ref refs/heads/ --format='%(refname:short)')" -- ${cur}) )
+  return 0
+}
+complete -F _git_ws git-ws

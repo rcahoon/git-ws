@@ -1,0 +1,47 @@
+#!/bin/bash
+
+if [ "x$1" = "x-f" ]; then
+  dest_name="$2"
+  new_ws=true
+  source_name="$3"
+elif [ "x$1" = "x-d" ]; then
+  git branch -d "$2"
+  exit
+else
+  dest_name="$1"
+fi
+
+if [ -z "$dest_name" ]; then
+#  echo "Please specify a target branch name" >&2
+  git branch
+  git status
+  exit 1
+fi
+
+branch_name="$(git symbolic-ref HEAD 2>/dev/null)"
+branch_name="${branch_name##refs/heads/}"
+
+if [ -z "$branch_name" ]; then
+  echo "Currently on an unnamed branch - cannot save state" >&2
+  exit 1
+fi
+
+git stash save -u "~~AUTO~~ on $branch_name" || exit 1
+
+if [ "$new_ws" = true ]; then
+  if [ -z "$source_name" ]; then
+    source_name="origin/HEAD"
+  fi
+  git checkout -b "$dest_name" --track "$source_name"
+else
+  git checkout "$dest_name"
+fi
+
+git stash list | while read line; do
+  regex="^([^:]+).*~~AUTO~~ on $dest_name$"
+  if [[ "$line" =~ $regex ]]; then
+    stash_id="${BASH_REMATCH[1]}"
+    git stash pop "$stash_id"
+    break
+  fi
+done
