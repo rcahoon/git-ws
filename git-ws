@@ -4,6 +4,9 @@ if [ "x$1" = "x-f" ]; then
   dest_name="$2"
   new_ws=true
   source_name="$3"
+elif [ "x$1" = "x-k" ]; then
+  keep_uncommitted=true
+  dest_name="$2"
 elif [ "x$1" = "x-d" ]; then
   git branch -d "$2"
   exit
@@ -21,12 +24,14 @@ fi
 branch_name="$(git symbolic-ref HEAD 2>/dev/null)"
 branch_name="${branch_name##refs/heads/}"
 
-if [ -z "$branch_name" ]; then
-  echo "Currently on an unnamed branch - cannot save state" >&2
-  exit 1
-fi
+if [ -z "$keep_uncommitted" ]; then
+  if [ -z "$branch_name" ]; then
+    echo "Currently on an unnamed branch - cannot save state" >&2
+    exit 1
+  fi
 
-git stash save -u "~~AUTO~~ on $branch_name" || exit 1
+  git stash save -u "~~AUTO~~ on $branch_name" || exit 1
+fi
 
 if [ "$new_ws" = true ]; then
   if [ -z "$source_name" ]; then
