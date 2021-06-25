@@ -24,18 +24,18 @@ fi
 branch_name="$(git symbolic-ref HEAD 2>/dev/null)"
 branch_name="${branch_name##refs/heads/}"
 
-if [ -z "$keep_uncommitted" ]; then
+if [ -z "$keep_uncommitted" ] && [ -n "$(git status --porcelain)" ]; then
   if [ -z "$branch_name" ]; then
     echo "Currently on an unnamed branch - cannot save state" >&2
     exit 1
   fi
 
-  if ! git diff-index --cached --quiet HEAD; then
+  if ! git diff --cached --quiet HEAD; then
     git commit --quiet --no-verify --message="~~AUTO~~ staged changes on $branch_name" \
       || (echo "Error saving staged changes"; exit 1)
   fi
   git add -A || exit 1
-  if ! git diff-index --cached --quiet HEAD; then
+  if ! git diff --cached --quiet HEAD; then
     git commit --quiet --no-verify --message="~~AUTO~~ unstaged changes on $branch_name" \
       || (echo "Error saving unstaged changes"; exit 1)
   fi
