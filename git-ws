@@ -30,14 +30,16 @@ if [ -z "$keep_uncommitted" ] && [ -n "$(git status --porcelain)" ]; then
     exit 1
   fi
 
+  echo "Saving branch working state" >&2
+
   if ! git diff --cached --quiet HEAD; then
     git commit --quiet --no-verify --message="~~AUTO~~ staged changes on $branch_name" \
-      || (echo "Error saving staged changes"; exit 1)
+      || (echo "Error saving staged changes" >&2; exit 1)
   fi
   git add -A || exit 1
   if ! git diff --cached --quiet HEAD; then
     git commit --quiet --no-verify --message="~~AUTO~~ unstaged changes on $branch_name" \
-      || (echo "Error saving unstaged changes"; exit 1)
+      || (echo "Error saving unstaged changes" >&2; exit 1)
   fi
 fi
 
@@ -49,18 +51,20 @@ if [ "$new_ws" = true ]; then
   checkout_result=$?
 else
   git checkout --quiet --progress "$dest_name" \
-    && echo "Switched to branch '$dest_name'"
+    && echo "Switched to branch '$dest_name'" >&2
   checkout_result=$?
 fi
 
 unstaged=true
 git rev-list --format=oneline HEAD | while read line; do
   if [[ "$unstaged" = true && "$line" = *"~~AUTO~~ unstaged changes"* ]]; then
+    echo "Restoring branch working state" >&2
     git reset --mixed --quiet HEAD^ || break
     continue
   fi
   unstaged=false
   if [[ "$line" = *"~~AUTO~~ staged changes"* ]]; then
+    echo "Restoring branch working state" >&2
     git reset --soft --quiet HEAD^ || break
     continue
   fi
@@ -71,7 +75,7 @@ git stash list | while read line; do
   regex="^([^:]+).*~~AUTO~~ on $dest_name$"
   if [[ "$line" =~ $regex ]]; then
     stash_id="${BASH_REMATCH[1]}"
-    git stash pop --quiet "$stash_id" || (echo "Error unstashing saved changes")
+    git stash pop --quiet "$stash_id" || (echo "Error unstashing saved changes" >&2)
     break
   fi
 done
