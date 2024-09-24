@@ -108,3 +108,5 @@ for line in subprocess.check_output(
 
 if checkout_result == 0:
     subprocess.check_call(["git", "status"])
+
+sys.exit(checkout_result)
